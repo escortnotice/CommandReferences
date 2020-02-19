@@ -1,0 +1,86 @@
+# to Login from command prompt
+> oc login -u <username> -p <password>
+
+> oc logout
+
+# to get the bearer token which can be used for authorization to access openshift resources without logging in.
+> oc whoami -t
+
+# to get list of users
+> oc get users
+
+# get list of projects
+> oc get projects
+
+# to add cluster admin role to an existing user
+> oc adm policy add-cluster-role-to-user <role> <username>
+Ex: oc adm policy add-cluster-role-to-user cluster-admin administrator
+
+
+## Deployments
+# to trigger a build
+> oc rollout latest <deployment name>
+ex: oc rollout latest dc/simple-webapp-dock
+
+#Deploy an angular app from ibm github using docker strategy.(remember the Dockerfile should be present in the project folder)
+oc new-app https://shuroych:c55b3cb77464e87ce11f15d6f5b547bd2bff4c48@github.ibm.com/shuroych/pizza-order-delivery-ui.git --strategy=docker
+
+# to see the history of build
+> oc rollout history <deployment name>
+
+# to describe a deployment
+> oc rollout describe <deployment name>
+
+# to undo a deployment
+> oc rollout undo <deployment name>
+
+# to see the ipaddress assigned to a pod
+oc get pods -o wide
+
+# list all pods from all namespaces/projects | show only first 15 pods from the list)
+oc get pods --all-namespaces | head -n 15
+
+# authentication
+oc login -u <my-user-name> --server="<master-api-public-addr>:<master-public-port>
+
+#create new project
+oc new-project <project-name> --description="Some Description" --display-name="Cat of the Day - Prod"
+
+#create a new app in a project
+oc new-app jenkins-persistent -p ENABLE_OAUTH=false -e JENKINS_PASSWORD=openshiftpipelines -n pipeline-${GUID}-dev
+
+-p is to set parameter values defined by the template
+-e is the environment variable to be set
+-n is the namespace argument (to create resources on a particular project as called in openshift)
+
+
+#switch to a project
+oc project <name of the project>
+
+# to check build logs
+oc logs -f build/cotd2-1 -n <project-name>
+
+# to check logs of a pod
+oc logs -f <pod name>
+
+# to check the build config logs
+oc logs -f bc/fooditemsorderdeliveryapi
+
+#to check applicaiton status
+oc status
+
+#create routes
+oc expose service cotd2 -n pipeline-roy-dev
+oc expose service <service name> -n <project name>
+oc expose svc/<service name>
+
+#create a mysql db
+oc new-app mysql-persistent --name mysqldb -e MYSQL_HOST=mysql -e MYSQL_DATABASE=pizzadb -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123
+
+#create a java spring boot app
+oc new-app redhat-openjdk18-openshift~<git hub url used to clone the repo) 
+ex:oc new-app redhat-openjdk18-openshift~https://github.com/jboss-openshift/openshift-quickstarts.git    
+
+
+
+

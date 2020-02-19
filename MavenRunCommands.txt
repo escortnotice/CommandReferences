@@ -1,0 +1,21 @@
+# Command To run a spring boot project with dev profile active(application-dev.properties)
+> mvn spring-boot:run -Dspring.profiles.active=dev
+
+# Command to create a jar and run the jar with dev profile active((application-dev.properties)
+> mvn clean package
+> java -jar -Dspring.profiles.active=dev target/application.jar
+
+
+# Command to create a jar from a profile defined in POM.xml(profile = openshift) and run the jar with dev profile active(application-dev.properties)
+> mvn clean package -Popenshift
+> java -jar -Dspring.profiles.active=dev target/application.jar
+
+
+# Command to build and deploy directly on Openshift cluster using openshift profile(in POM.xml)
+> mvn clean fabric8:deploy -Popenshift
+
+# Command to build and package and skip tests
+> mvn clean package -DskipTests=true
+
+# Command to build, package, skip tests and deploy to Openshift(using fabric8 plugin) and using "openshift" profile(defined in POM.xml)
+> mvn clean fabric8:deploy -Popenshift -DskipTests=true
