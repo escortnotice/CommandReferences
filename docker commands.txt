@@ -1,0 +1,305 @@
+
+Docker:
+TO Play with Docker : Type play-with-docker.com. and play with test instances
+
+Installation folder in linux : /var/lib/docker
+						aufs, containers,images,volumes.
+
+To give basic docker information -> docker info
+				    docker system info
+
+In linux OS docker root directory -> cd /var/lib/docker
+
+In MacOS docker runs on a Linux VM. To login to the linux VM where docker is installed use the below command.
+-> screen ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
+Here the docker root directory -> cd /var/lib/docker
+
+to get the history of the image created -> docker history <image name/id>
+
+To run a command on a running container -> docker exec <container_name> less etc/hosts
+
+to let the docker container listen to standard input(like keyboard) -> docker run -i mysqldb
+
+--------------------------------------------------------------------------------------------------------------
+
+run -d -> will run the command in background
+run -p -> needs to given when we want to expose the port of the container to the host
+run -it -> "it" is interactive mode. This will run the container and give access to its shell.
+--name <name> -> this will give a name to the running container
+--link -> will link a container with another container, basically it makes an entry to the host file of the container.
+rm -> to remove container
+rmi -> to remove images
+rm -f -> forcefully remove container
+-v -> to associate a volume
+--------------------------------------------------------------------------------------------------------------
+docker ps -> show only running containers
+
+docker ps -a -> show all containers including stopped
+
+docker images -> to show the images in the system
+docker images -a -> shows all images
+
+docker pull <image name> -> will pull the docker image from docker hub
+
+docker build -f Dockerfile -t basic-springboot-project . -> builds the project image with the DockerFile configuration, . is in the current directory, -t lets you give a name to the build image.
+
+docker run --name springboot-cassandra-project -d cassandra:latest -p 9042:9042 -> run the image, "springboot-cassandra-project " is the container name, "latest" is the version of 
+cassandra container you want to run, -p will provide port forwarding
+
+docker exec -it some-cassandra bash -> this gives access to the bash shell inside the cassandra container
+
+ docker run -it --link springboot-cassandra-db:cassandra --rm cassandra cqlsh cassandra -> run the cqlsh bash against your original container
+
+docker run -p 8085:8085 --name springboot-docker-cassandra-container --link springboot-cassandra-db:cassandra -d springboot-docker-cassandra -> to link the spring boot container to cassandra container and start the container containing the spring boot app
+
+ docker run --name springboot-cassandra-db -p 9042:9042 cassandra:latest -> create a cassandra container with the name "springboot-cassandra-db" and port forwarding to the local host
+
+ docker run <image name> -> will create a new container every time from the image.
+ docker run --name <container name> <image name> -> this will create a container with the name given from the image.
+ docker run -d <image name> -> will run the container in detached mode, detached it from the current terminal session 
+                              and run it in background.
+
+ docker stop <container_id>/<container_name> -> stop a running container
+
+ docker start <container_id> -> start a stopped container
+
+ docker run -i -t <image name> -> this will start the container and give access to the shell of the container."exit"     
+                                  stop the container and you will come back to the system console.
+
+ docker rm <container name> -> delete the container
+
+ docker rmi image <image name> -> deletes the image
+ docker rmi <image id> -> deletes the image
+ docker rmi -f <image id> -> forcibly deletes the image
+ docker rmi $(docker images -f "dangling=true" -q) -> to remove dangling images
+
+ docker logs <container name/container id> -> check logs for the container
+ docker inspect <container id> -> will return the container related settings in a json array
+ docker inspect <container id> | less -> will return less output and you can scroll using up and down arrow.Type quit    
+                                         to exit.
+
+ docker run -it -d -p <host_port>:<container_port> <image name> -> this will run the container in the background
+								    and bind the container port to the host machine 
+                                                                    port and open it up for communication.
+
+ docker run -it <image name> -> will download the image if not present, run the container and open a shell
+				to the container. "exit" will exit the shell.
+
+ docker history <image name> -> the layers that make up the image.
+
+ docker exec -it <container id> bash -> will give access to the shell of the container running, run "exit" to come out of the shell
+
+ docker inspect <container name> -> will give all the info about the container like ip address, port etc
+
+ more /etc/hosts -> to get the ip address and network info of the container, for this you need to get into the container shell
+----------------------------------------------------------------------------------------------------------------
+
+Docker Registry - where all the images are residing.
+Docker Repository - where one image is residing with different versions.
+
+Build a customized image and add to your personal docker repository:
+docker commit <container id> <repositoryname>:<tag>
+ex: docker commit 13cdhjfllfe4 escortnotice/debian:1.00
+now check the new image in your local registry by typing "docker images"
+
+Second way to build a customized image and add to your personal docker repo:
+- using a docker file : it is a text document which has all the instructions to build an image
+1) create a Dockerfile with all the commands and arguments
+2) run the command > docker build -t <repositoryname>:<tag> . -> this should be run from location where Dockerfile is   
+                                                                 present
+
+
+Push docker images from local to remote repository:
+1) rename the image to match the repository name with the below command
+   docker tag <existing image name> <repositoryname>:<tag>
+2) login to docker from terminal > docker login --username <username>
+				   put the password
+3) docker push <image name>:<Tagname>
+
+--------------------------------------------------------------------------------------------------------------
+Link two containers, a spring boot app and mysqldb
+1) run the mysqldb container with username "root" and with no password-> docker run -d --name mysqldb -e MYSQL_ALLOW_EMPTY_PASSWORD=true -d mysql:latest
+2) get into the mysqldb container and create the database used in the app -> docker exec -it <container id> bash
+3) go to mysql > mysql
+4) create database > create database <database name>;
+5) exit to get out of mysql, then exit to get out of the mysqldb container shell
+6) to check the remote ip address of the container > go to the shell of the container and type "more /etc/hosts"
+
+7) build the new openjdk image(using the Dockerfile) with the springboot jar file -> docker build -t springbootrestmysqlapp:1.0 .
+8) Now run the container with the springbootapp,expose the http ports and link it to the mysqldb container -> docker run -d -p 8080:8300 --link mysqldb springbootrestmysqlapp:1.0
+
+** note - remember to use the ip-address/container-name of the mysqldb container to the db connection string in the springboot app.You can get it by running "docker inspect <container id> | grep IPAddress"
+or check the /etc/hosts file in the container.
+example: spring.datasource.url =jdbc:mysql://mysqldb:3306/testdb or spring.datasource.url =jdbc:mysql://172.17.0.2:3306/testdb
+
+10) this can also be done by writing a docker-compose file with settings and running the command "docker-compose up". Example file is there in the directory for the above example.
+
+logging into mysql> mysql -u <username> -p
+
+11) docker inspect <container name/id> -> will show all the details of the container in json format
+12) link a volume to the mysqldb -> 
+    creates a volume -> docker volume create <volume name>
+    mounts the volume,spins a container -> docker run -v <volume name>:/var/lib/mysql <image name>
+
+13) This will mount the volume in a desired directory in the host machine -> 
+         docker run -v /data/mysql:/var/lib/mysql <image name>
+
+12) remove all docker containers -> docker rm $(docker ps -a -q)  
+  -q returns all the container ids
+
+13)remove all docker images -> docker rm $(docker images -q)
+-------------------------------------------------------------------------------------------------------------
+Best Practices to write a Dockerfile in yml:
+1) Avoid using lot of "Run" commands , as each Run command will create a new container for layering the image.
+2) Use "CMD" to run commands after the container starts up.
+CMD ["echo","hello world"]
+3)Use "copy" to copy file from client to docker container when it starts
+4) Diff between RUN and CMD > RUN is executed during build of the image, CMD is executed when the container starts. There can be only one CMD, and if there are multiple CMD then only the last one is executed.
+
+--------------------------------------------------------------------
+
+Docker Compose Commands:
+1) docker-compose up -> this will go through the instructions in the docker-compose file and download the image and start the container
+2) docker-compose up -d -> will run the above process in background
+3) docker-compose ps -> will show the status of the containers managed by the docker-compose file
+   docker-compose -f <compose yml file name> ps -> will show the status of the containers.This is useful if the file name is other than the default name i.e - docker-compose.yml
+4) docker-compose logs -> will output logs of all the docker managed containers aggregated.
+5) docker-compose logs -f -> will output appended logs when the logs grows.
+6) docker-compose logs <container name> -> will show only the container specific logs
+7) docker-compose stop -> to stop all the running containers without removing them
+8) docker-compose rm -> to remove all docker compose containers
+9) docker-compose build -> will rebuild the images if any changes are made. (note - re running docker-compose up will not rebuilt the image, if the image exists then it does nothing)
+10) docker-compose -f <yml file name> up -> will download the image and start the container for the compose file given
+
+--------------------------------------------------------------------
+
+Docker Networking:
+1) docker network ls -> will show the current networks present for docker.
+4 types of network:
+- none (secured or closed networks)
+- bridge network (this is default)
+- Host network (open network/public and least secured)
+- overlay network (to communicate between containers on different host machines)
+
+2) Run a container and assign "none" network to it
+> docker run -d --net none busybody sleep 1000 
+you will not be able to ping public ipaddresses from this machine.As this is a closed network.
+
+3) Bridge network: all the containers in the same host machine has by default same bridge network, and can communicate
+with each other via this bridge network.It can also communicate to the outside world.
+
+Containers in two different bridge network cannot communicate with each other by default.
+docker network connect <network bridge name> <container name> -> To connect containers from two different bridge network
+
+more commands:
+docker run ubuntu --network=none
+
+Creating an overlay network, so that all the containers in different hosts can be a part of the same network.
+docker network create --driver overlay --subnet 10.0.9.0/24 my-overlay-network
+docker service create --replicas 2 --network my-overlay-network <image name>
+
+4) 4th type of network is ingress network. This is automatically created when a docker swarm is created for port mapping of the containers to the host and load balancing between the containers hosting the same application.
+
+-DNS Server : In case of docker swarm, there is a dns server running at IP 127.0.0.11 which resolves the hostname to the ipaddress for intercommunication of the different services using dns names.
+
+-----------------------------------------------------------------------
+Docker Volumes:
+1) docker volume ls -> will show all the volumes
+2) docker volume create <volume name> -> will create a new volume
+3) docker volume inspect <volume name> -> will give info on the volume in son format.
+
+----------------------------------------------------------------------
+
+Docker Swarm:
+
+The formula for a quorum to perform management function when multiple managers are present - n/2 + 1
+
+To initialize the swarm on a machine which will be the manager-> docker swarm init
+								-> docker swarm --advertise-addr <ip address> (when more than IP is available for the docker machine/host(in case of linux) on different interfaces)
+To join the the swarm as a worker -> docker swarm join --token <token id> ( the token id will be generated in the swarm manager when swarm init command is executed above)
+
+Use below entries in the yml file to sping replicas in the cluster machine
+      deploy:
+       replicas: 5  #this is the number of instances you need running on the cluster
+
+
+to deploy the images and run the container on the cluster -> docker stack deploy -c docker-compose.yml
+                                                             docker stack deploy --compose-file docker-stack.yml
+
+To deploy again after updated the yml file run the same command with the same stack name, it will automatically only update the service updated: docker stack deploy --compose-file docker-stack.yml
+
+To force create a cluster -> docker swarm init --force-new-cluster (runt this from the manager node which is up)
+
+To promote an existing worker node to be a manager node -> docker node promote <worker node name> (this command needs to be run on the manager node)
+
+TO let the manager node to only do management tasks -> docker node update --availability drain <Node>
+
+to see the nodes attached to a manager node -> docker node ls (this will only work on the master node)
+
+To leave the swarm -> docker swarm leave ( if run on the worked, it will leave the swarm. If run on the manager, the whole swarm will be close with the worker nodes).
+to delete the node which is part of the swarm -> docker rm node <node name>
+
+To change the host name of the node -> hostname <new name>
+
+To join the swarm as a manager -> docker swarm join-token manager (this will give the command with the token id to join the swarm as a manager)
+To join the swarm as a worker -> docker swarm join-token worker
+
+TO deploy the app on multiple nodes -> docker service create --replicas=3 my-java-app ( this command should be run on manager node)
+
+For creating global services, like monitoring agent on all nodes -> docker service create --mode global <the service you want to install on all node>
+
+To update a running service -> docker service update -replicas=4 my-java-app
+
+To list the docker services running -> docker service ls
+
+to List the particular docker service -> docker service ps <name of the service/id of the service>
+
+to publish a port on a running service-> docker service  update <service id/service name> --publish-add <host port:container port>
+
+to remove a service -> docker service rm <service id/service name>
+
+to create a service with multiple replicas -> docker service create --replicas 2 --name nginx nginx
+
+to check the replicas status -> docker service ps <service name>
+
+to restrict the master to do only administrative jobs -> docker node update --availability drain docker-master (run this on master node)
+
+
+Docker-Compose file for stack:
+for stack, write a docker compose file with "version: 3".
+Use the property deploy:
+                  replicas:2   (this will create two instances of the application on the nodes in the swarm)
+
+Use the placement property under deploy for having the instance of the app running on a particular node
+   placement:
+    constraints:
+     - node.hostname == node1
+
+     - node.role == manager (this will put the container on the node which is manager)
+
+To remit resource consumption for a container like RAM or CPU usage. This is done using resources in deploy property.
+deploy:
+  replicas: 1
+  resources:
+   limits:
+    cpus: 0.01
+    memory: 50M
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+Docker Registry:
+
+Organisations can host their own docker registries by either installing private docker registry, or hosting the docker registry images. (docker -run -d -p 5000:5000 registry:2)
+
+To push the image in the local registry: docker push <ipaddress of the local registry hosted>:5000 <image name>:<Tagname>
+
+lsof -i tcp:<portnumber> = command to get the port details opened on the mac
+
+
+
+
+
+
+
+
+
