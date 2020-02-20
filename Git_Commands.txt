@@ -19,6 +19,10 @@ git init - to initiate a repository. Will create a local git repository
 
 git clone <repo name> - to get the remote repository in the local system
 
+git clone https://github.com/gpe-mw-training/appmod_springboot_experienced.git ~/appmod_springboot_experienced
+( This will clone the project and cd into the project directory "appmod_springboot_experienced" )
+
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 git add <filename> - adds the file to the staging area
 git add -all  - adds all new, modified or deleted file to the stage

@@ -1,35 +1,249 @@
-# to Login from command prompt
-> oc login -u <username> -p <password>
+Authorization:
 
-> oc logout
+# to Login from command prompt (below are some of the ways)
+> oc login -u <username> -p <password>
+> oc login --insecure-skip-tls-verify --server=https://master.na311.openshift.opentlc.com:443
+> oc login -u <my-user-name> --server="<master-api-public-addr>:<master-public-port>
+> oc login --token=<token> --server=https://api.shared.na.openshift.opentlc.com:6443
 
 # to get the bearer token which can be used for authorization to access openshift resources without logging in.
 > oc whoami -t
 
-# to get list of users
-> oc get users
+# to access apis using token ( this is calling the users api here)
+curl -H "Authorization: Bearer 8tKuwU8didUK9xwc_xS2XYGX4TziwVkb-8NDIXAPCkU" 
+"https://api.shared.na.openshift.opentlc.com:6443/apis/user.openshift.io/v1/users/~"
+
+# to logout
+> oc logout
+
+-------------------------------------------------------------------------------------------------------------------------------------
+Basic Operations like create project, delete them etc :
+
+-p is to set parameter values defined by the template
+-e is the environment variable to be set
+-n is the project name
+
+#get all resources of the project
+oc get all
+
+#to get pods running on the project
+oc get pods
+oc get pods -w
+
+#examine the pods with labels
+oc get pods --show-labels
+
+#explore the details of one of the pods.
+oc get pods <pod-name> -o yaml
+
+#explore the replicationcontroller object
+oc get rc <replication controller name> -o yaml
+
+#details of the deploymentconfig
+oc get dc <deployment config name> -o yaml
+
+#get details of a service
+oc get svc mysql -o yaml
+
+# to get list of only running pods
+oc get pods --field-selector status.phase=Running
+
+#create new project
+oc new-project <project-name> --description="Some Description" --display-name="Cat of the Day - Prod"
+
 
 # get list of projects
 > oc get projects
+> oc projects
+
+# to delete a project
+> oc delete project <project name>
+
+# delete all projects
+>oc delete project --all
+
+#switch to a specific project
+> oc project <name of the project>
+
+# to get route on command line for a project
+oc get route <app-service-name> -n <project name> -o template --template='{{.spec.host}}'
+oc get routes -n <project name>
+oc get route openshift-tasks -n <projectname> -o jsonpath='{.spec.host}{"\n"}'
+
+#get route details
+oc get route <route name> -o yaml
+oc get route
+
+#get service
+oc get svc
+
+
+# to retag an image with a different tag name (retag from cotd2:latest to cotd2:testready )
+oc tag cotd2:latest cotd2:testready -n pipeline-roy-dev
+
+# To examine the image stream and get details about it
+oc describe is cotd2:latest -n pipeline-roy-dev
+
+#Create a persistent volume claim of 4G and connect it to /data:
+oc set volume dc/gogs --add --overwrite --name=gogs-volume-1 --type persistentVolumeClaim --claim-size=4G --claim-name=gogs-data
+
+#Create the ConfigMap with the app.ini file and mount it as a volume into the pod:
+oc create configmap gogs --from-file=app.ini
+oc set volume dc/gogs --add --overwrite --name=config-volume -m /opt/gogs/custom/conf/ -t configmap --configmap-name=gogs
+rm -f app.ini
+
+#Set the MAVEN_MIRROR_URL environment variable for the openshift-tasks build configuration:
+oc set env bc openshift-tasks MAVEN_MIRROR_URL=http://nexus3.opentlc-shared.svc.cluster.local:8081/repository/maven-all-public
+
+---------------------------------------------------------------------------------------------------------------------------------------
+User Administration, roles, policy and permission grants :
+
+# to get list of users
+> oc get users
+
 
 # to add cluster admin role to an existing user
 > oc adm policy add-cluster-role-to-user <role> <username>
 Ex: oc adm policy add-cluster-role-to-user cluster-admin administrator
 
+# add view role to the default service account
+oc adm policy add-role-to-group view system:serviceaccounts:<projectname>-n <projectname>
 
-## Deployments
+
+# enable the jenkins service account to manage resources in another project "pipeline-roy-test"
+oc policy add-role-to-user edit system:serviceaccount:pipeline-roy-dev:jenkins -n pipeline-roy-test
+
+# enable the project "pipeline-roy-test" to pull image from "pipeline-roy-dev" project
+oc policy add-role-to-group system:image-puller system:serviceaccounts:pipeline-roy-test -n pipeline-roy-dev
+
+#Give the service account the correct permissions to edit objects in this project to allow Jenkins to build and deploy the application
+oc policy add-role-to-user edit system:serviceaccount:$GUID-cicd:jenkins -n $GUID-tasks
+-----------------------------------------------------------------------------------------------------------------------------------------
+Create Databases :
+
+# mongodb creation from a template in local
+oc process -f OpenshiftConfigSamples/mongodb-persistent.yaml -p CATALOG_DB_USERNAME=mongo -p 
+CATALOG_DB_PASSWORD=mongo -n <project name> | oc create -f - -n <project name>
+
+#create a mysql persistent db
+oc new-app mysql-persistent --name mysqldb -e MYSQL_HOST=mysql -e MYSQL_DATABASE=pizzadb -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123 -e MYSQL_ROOT_PASSWORD=root
+
+#create a mysql ephemeral db
+oc new-app mysql-ephemeral --name mysqldb -e MYSQL_HOST=mysql -e MYSQL_DATABASE=pizzadb -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123 -e MYSQL_ROOT_PASSWORD=root
+
+# Running MYSQL DB using an image
+oc new-app -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123 -e MYSQL_DATABASE=pizzadb openshift/mysql-56-centos7
+
+#Create postgres db
+oc new-app postgresql-persistent --param POSTGRESQL_DATABASE=gogs --param POSTGRESQL_USER=gogs --param POSTGRESQL_PASSWORD=gogs --param VOLUME_CAPACITY=4Gi -lapp=postgresql_gogs
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+Configmaps and Secrets:
+
+#Creating configmap from file
+oc create configmap app-config --from-file=OpenshiftConfigSamples/app-configmap.yaml -n <projectname>
+
+#To view the configmap entries created above
+oc get configmap app-config -o yaml -n <project name>
+
+#Creating configmap from key and value passed from command line
+oc create configmap cart-service --from-literal=catalog.service.url=http://catalog-service-cd-friday-coolstore-catalog.apps.na311.openshift.opentlc.com
+
+# createan environment variable for a deployment config
+oc set env dc/printenv APP_VAR_1=Value1 APP_VAR_2=Value2
+
+#delete the second environment variable above (notice the minus(-) sign after the environment variable key)
+oc set env dc/printenv APP_VAR_2-
+
+#Create a config map from two environment variables
+oc create configmap printenv-config --from-literal=APP_VAR_3=Value3 --from-literal=APP_VAR_4=Value4
+
+#Set an environment variable to read from the file
+oc set env dc/printenv READ_FROM_FILE=/data/configfile.txt
+
+#create a secret from a file 
+echo 'r3dh4t1!' > ./password.txt   
+echo 'admin' > ./user.txt
+oc create secret generic printenv-secret --from-file=app_user=user.txt --from-file=app_password=password.txt
+
+#validate the secret
+oc get secret printenv-secret -o yaml
+
+#As secrets are base64 encoded, so decode the secret
+echo "<base 64 encoded secret>" | base64 --decode
+
+#add the secret to the deployment config
+oc set env dc/<deployment config name> --from=secret/printenv-secret
+
+# verify the list of environment variables tagged to a deployment config
+oc set env dc/printenv --list
+
+#Set the same secrets for the MySQL database by adding the MYSQL_ prefix:
+oc set env dc/printenv --from=secret/printenv-secret --prefix=MYSQL_
+
+# Mount the new database secret as a volume into the printenv deployment configuration 
+# and set the READ_FROM_FILE variable to point to the app_db_url file in that volume:
+oc set volume dc/printenv --add --overwrite --name=db-config-volume -m /dbconfig/ --secret-name=printenv-db-secret
+oc set env dc/printenv READ_FROM_FILE=/dbconfig/app_db_url
+---------------------------------------------------------------------------------------------------------------------------------------
+Create,Build and Deployments:
+
+#Deploying a java app using fabric8 plugin using maven command from development system
+mvn clean fabric8:deploy -Popenshift -Dfabric8.namespace=<projectname>
+
+# Creating and deploying a java app and passing username pwd in environment variable, using fabric8 java s2i image
+oc new-app -e DB_USERNAME=admin -e DB_PASSWORD=admin123 -e MY_DATABASE_SERVICE_HOST=mysql -e MY_DATABASE_SERVICE_PORT=3306 
+-e JAVA_OPTIONS='-Dspring.profiles.active=openshift'
+fabric8/s2i-java:3.0-java8~https://shuroych:<token>@github.ibm.com/shuroych/fooditemsorderdeliveryapi.git
+
+#create a java spring boot app using redhat s2i image (notice there is a tild(~) before after the s2i image and before the github url)
+oc new-app redhat-openjdk18-openshift~<git hub url used to clone the repo) 
+ex:oc new-app redhat-openjdk18-openshift~https://github.com/jboss-openshift/openshift-quickstarts.git 
+
+-- you can also add  (-e MAVEN_ARGS='-Popenshift') to pass in maven arguments, currently not needed above as the above s2i image of java
+by default runs the maven command on the source code using profile as openshift
+
+#Create and Deploy an angular app from ibm github using docker strategy.(remember the Dockerfile should be present in the project folder)
+oc new-app https://shuroych:<token>@github.ibm.com/shuroych/pizza-order-delivery-ui.git --strategy=docker
+
+#create a Jenkins service
+oc new-app jenkins-persistent -p ENABLE_OAUTH=false -e JENKINS_PASSWORD=openshiftpipelines -n pipeline-roy-dev
+
+#deploy an image to a project. here the image cotd2:testready is deployed from project pipeline-roy-dev to another project pipeline-roy-test
+# note, for deploying image from one project to another, the rbac policy for system:image-puller should be given to the other project
+oc new-app pipeline-roy-dev/cotd2:testready --name=cotd2 -n pipeline-roy-test
+
+#create a new deployment from docker image
+oc new-app --docker-image=quay.io/gpte-devops-automation/ocp-probe:v0.5 --name=blue
+
+#create routes
+oc expose service cotd2 -n pipeline-roy-dev
+oc expose service <service name> -n <project name>
+oc expose svc/<service name>
+
 # to trigger a build
 > oc rollout latest <deployment name>
 ex: oc rollout latest dc/simple-webapp-dock
-
-#Deploy an angular app from ibm github using docker strategy.(remember the Dockerfile should be present in the project folder)
-oc new-app https://shuroych:c55b3cb77464e87ce11f15d6f5b547bd2bff4c48@github.ibm.com/shuroych/pizza-order-delivery-ui.git --strategy=docker
 
 # to see the history of build
 > oc rollout history <deployment name>
 
 # to describe a deployment
 > oc rollout describe <deployment name>
+oc describe <deployment name>
+
+#to check the status of the deployment
+oc rollout status deployment <deployment name>
+oc rollout status dc <deployment name>
+
+#to scale a deployment
+oc scale deployment <deployment name> --replicas=3
+oc scale dc/<deployment name> --replicas=3
+
+#to edit a deployment
+oc edit deployment <deployment name>
+oc edit dc/<deployment name>
 
 # to undo a deployment
 > oc rollout undo <deployment name>
@@ -40,22 +254,17 @@ oc get pods -o wide
 # list all pods from all namespaces/projects | show only first 15 pods from the list)
 oc get pods --all-namespaces | head -n 15
 
-# authentication
-oc login -u <my-user-name> --server="<master-api-public-addr>:<master-public-port>
+# disable automatic deployment for a project (project : pipeline-roy-dev)
+oc get dc cotd2 -o yaml -n pipeline-roy-dev | sed 's/automatic: true/automatic: false/g' | oc replace -f -
+oc set triggers dc openshift-tasks --manual
 
-#create new project
-oc new-project <project-name> --description="Some Description" --display-name="Cat of the Day - Prod"
+#create a deployment/service/route or any openshift object from a file
+oc create -f <filename>.yaml
 
-#create a new app in a project
-oc new-app jenkins-persistent -p ENABLE_OAUTH=false -e JENKINS_PASSWORD=openshiftpipelines -n pipeline-${GUID}-dev
-
--p is to set parameter values defined by the template
--e is the environment variable to be set
--n is the namespace argument (to create resources on a particular project as called in openshift)
-
-
-#switch to a project
-oc project <name of the project>
+#to edit an deployment config
+oc edit dc <deployment config name>
+------------------------------------------------------------------------------------------------------------------------------------
+View Logs, check info and troubleshooting
 
 # to check build logs
 oc logs -f build/cotd2-1 -n <project-name>
@@ -63,23 +272,15 @@ oc logs -f build/cotd2-1 -n <project-name>
 # to check logs of a pod
 oc logs -f <pod name>
 
-# to check the build config logs
+# to check the build-config logs
 oc logs -f bc/fooditemsorderdeliveryapi
 
 #to check applicaiton status
 oc status
 
-#create routes
-oc expose service cotd2 -n pipeline-roy-dev
-oc expose service <service name> -n <project name>
-oc expose svc/<service name>
-
-#create a mysql db
-oc new-app mysql-persistent --name mysqldb -e MYSQL_HOST=mysql -e MYSQL_DATABASE=pizzadb -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123
-
-#create a java spring boot app
-oc new-app redhat-openjdk18-openshift~<git hub url used to clone the repo) 
-ex:oc new-app redhat-openjdk18-openshift~https://github.com/jboss-openshift/openshift-quickstarts.git    
+# open a shell in the running pod
+oc rsh <pod name>
+--------------------------------------------------------------------------------------------------------------------------------------  
 
 
 
