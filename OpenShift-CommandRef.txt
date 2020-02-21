@@ -19,9 +19,15 @@ curl -H "Authorization: Bearer 8tKuwU8didUK9xwc_xS2XYGX4TziwVkb-8NDIXAPCkU"
 -------------------------------------------------------------------------------------------------------------------------------------
 Basic Operations like create project, delete them etc :
 
+Tips:
 -p is to set parameter values defined by the template
 -e is the environment variable to be set
 -n is the project name
+oc get : for getting information about resources
+oc delete : for deleting resources
+oc create : to create resources
+oc set : to set environment variable
+
 
 #get all resources of the project
 oc get all
