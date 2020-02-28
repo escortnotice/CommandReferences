@@ -1,7 +1,7 @@
 Authorization:
 
 # to Login from command prompt (below are some of the ways)
-> oc login -u <username> -p <password>
+> oc login -u <username> -p <password> <openshift cluster apiserver url>
 > oc login --insecure-skip-tls-verify --server=https://master.na311.openshift.opentlc.com:443
 > oc login -u <my-user-name> --server="<master-api-public-addr>:<master-public-port>
 > oc login --token=<token> --server=https://api.shared.na.openshift.opentlc.com:6443
@@ -22,11 +22,17 @@ Basic Operations like create project, delete them etc :
 Tips:
 -p is to set parameter values defined by the template
 -e is the environment variable to be set
--n is the project name
-oc get : for getting information about resources
+-n is the project name where the command will run and access/modify resources from
+oc get : for getting information about resources (limited info)
+oc describe : to get detailed information about the resource
 oc delete : for deleting resources
 oc create : to create resources
 oc set : to set environment variable
+
+Short Hands:
+svc - service
+bc - build configs
+dc - deployment configs
 
 
 #get all resources of the project
@@ -50,6 +56,7 @@ oc get dc <deployment config name> -o yaml
 
 #get details of a service
 oc get svc mysql -o yaml
+oc get svc/mysql
 
 # to get list of only running pods
 oc get pods --field-selector status.phase=Running
@@ -79,6 +86,8 @@ oc get route openshift-tasks -n <projectname> -o jsonpath='{.spec.host}{"\n"}'
 #get route details
 oc get route <route name> -o yaml
 oc get route
+oc get route/<route name>
+oc describe route/<route name>
 
 #get service
 oc get svc
@@ -143,6 +152,9 @@ oc new-app -e MYSQL_USER=admin -e MYSQL_PASSWORD=admin123 -e MYSQL_DATABASE=pizz
 #Create postgres db
 oc new-app postgresql-persistent --param POSTGRESQL_DATABASE=gogs --param POSTGRESQL_USER=gogs --param POSTGRESQL_PASSWORD=gogs --param VOLUME_CAPACITY=4Gi -lapp=postgresql_gogs
 
+oc new-app -e POSTGRESQL_USER=luke -ePOSTGRESQL_PASSWORD=secret \
+             -ePOSTGRESQL_DATABASE=my_data openshift/postgresql-92-centos7 \
+             --name=my-database
 
 -----------------------------------------------------------------------------------------------------------------------------------------
 Configmaps and Secrets:
@@ -193,10 +205,18 @@ oc set env dc/printenv --from=secret/printenv-secret --prefix=MYSQL_
 oc set volume dc/printenv --add --overwrite --name=db-config-volume -m /dbconfig/ --secret-name=printenv-db-secret
 oc set env dc/printenv READ_FROM_FILE=/dbconfig/app_db_url
 ---------------------------------------------------------------------------------------------------------------------------------------
-Create,Build and Deployments:
+Java Application Build and Deployment using fabric8 plugin now called "jkube openshift" plugin :
+
+# Using fabric8 plugin now called as jkube openshift plugin:
+git url:https://github.com/eclipse/jkube
+documentation url : https://htmlpreview.github.io/?https://github.com/eclipse/jkube/blob/master/openshift-maven-plugin/doc/index.html#goals-build
 
 #Deploying a java app using fabric8 plugin using maven command from development system
-mvn clean fabric8:deploy -Popenshift -Dfabric8.namespace=<projectname>
+mvn clean oc:deploy -Popenshift
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+Create,Build and Deployments:
 
 # Creating and deploying a java app and passing username pwd in environment variable, using fabric8 java s2i image
 oc new-app -e DB_USERNAME=admin -e DB_PASSWORD=admin123 -e MY_DATABASE_SERVICE_HOST=mysql -e MY_DATABASE_SERVICE_PORT=3306 
@@ -206,6 +226,12 @@ fabric8/s2i-java:3.0-java8~https://shuroych:<token>@github.ibm.com/shuroych/food
 #create a java spring boot app using redhat s2i image (notice there is a tild(~) before after the s2i image and before the github url)
 oc new-app redhat-openjdk18-openshift~<git hub url used to clone the repo) 
 ex:oc new-app redhat-openjdk18-openshift~https://github.com/jboss-openshift/openshift-quickstarts.git 
+
+#create a java springboot app using context directory (context directory is used if the project is not in the root folder of git repo)
+oc new-app registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift~https://github.com/fmarchioni/masterspringboot.git 
+--context-dir=demo-docker --name=springboot-demo-docker
+# then expose the java app
+oc expose svc/springboot-demo-docker
 
 -- you can also add  (-e MAVEN_ARGS='-Popenshift') to pass in maven arguments, currently not needed above as the above s2i image of java
 by default runs the maven command on the source code using profile as openshift
@@ -269,6 +295,12 @@ oc create -f <filename>.yaml
 
 #to edit an deployment config
 oc edit dc <deployment config name>
+
+# get all resources for an app
+oc get all --selector app=pizza-order-delivery-ui
+
+# delete all resources for an app
+oc delete all --selector app=pizza-order-delivery-ui
 ------------------------------------------------------------------------------------------------------------------------------------
 View Logs, check info and troubleshooting
 

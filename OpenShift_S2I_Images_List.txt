@@ -1,0 +1,65 @@
+Alternate approach if builder image pull issue from registry occurs 
+
+
+Prerequisite:
+Docker must be installed on the system[https://docs.docker.com/v17.09/engine/installation/]
+Active Dockerhub login[https://hub.docker.com/]
+
+
+1) Install s2i using the below instructions
+https://github.com/openshift/source-to-image#installation
+
+
+2) Build the docker container 
+s2i build <<your-source-gitrepo-url>>  <<builder-image>>  <<tag-name>>
+
+
+**tag-name should be docker-hub-user-name/repo-name
+    eg:-s2i build https://github.com/prasad2606/nodejs-ex centos/nodejs-8-centos7 prasadalmelkar/prasad_repo
+In the above example prasadalmelkar has a repository prasad_repo on DockerHub and he is trying to build a NodeJs based app
+
+
+**Below is the <<builder-image>>  to be keyed into the above command based on the source code langauge
+
+
+centos/python-36-centos7  ===> For Python based codes
+centos/nodejs-8-centos7      ===> For NodeJs based codes
+centos/ruby-24-centos7        ===> For Ruby based codes
+centos/perl-526-centos7       ===> For Perl based codes
+centos/php-72-centos7         ===> For PHP based codes
+fabric8/s2i-java:3.0-java8      ===> For Java based codes
+registry.centos.org/dotnet/dotnet-21-centos7:latest  ==>> For dotNet[21 is for 2.1 if u use 2.2 it would be 22 and so on]
+
+
+3) Login into DockerHub
+docker login
+
+
+4) Push the image on DockerHub
+docker push tag-name
+eg:-docker push prasadalmelkar/prasad_repo
+
+
+5) Login to Openshift Console
+
+
+6) Choose your project
+
+
+7) Add to Project -> Deploy Image 
+
+
+Choose the second radio button and provide your tag name.
+eg:-- If we follow this example it would be prasadalmelkar/prasad_repo:latest
+Click on Deploy
+
+
+8) To create route:
+Choose the Application Tab ->Services
+Click on the newly created Service and create a Route if you need to expose the service to external world
+
+
+
+
+For the technology not mentioned in the above base image list s2i build needs to be replaced with DockerFile based build.
+
