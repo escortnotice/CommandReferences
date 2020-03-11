@@ -21,8 +21,16 @@ Basic Operations like create project, delete them etc :
 
 Tips:
 -p is to set parameter values defined by the template
--e is the environment variable to be set
 -n is the project name where the command will run and access/modify resources from
+-f is file or filepath
+-l is label
+-o is output(like : output format which can be yaml, jsonpath, json, or output only the name of pods , etc)
+-w is watch (like : you want to get the output of pod status when the status changes, so -w will look for any change in the pod status)
+--help to get details about a command (ex: oc get pods --help)
+-e key=value is the environment variable to be set
+--key=value is used to pass in arguments and values in a configuration
+--parametername=key=value is used to pass key value to an existing openshift parameter.
+
 oc get : for getting information about resources (limited info)
 oc describe : to get detailed information about the resource
 oc delete : for deleting resources
@@ -33,7 +41,11 @@ Short Hands:
 svc - service
 bc - build configs
 dc - deployment configs
+rc - replication controller
 
+
+# get list of templates in openshift
+oc get templates -n openshift
 
 #get all resources of the project
 oc get all
@@ -50,6 +62,15 @@ oc get pods <pod-name> -o yaml
 
 #explore the replicationcontroller object
 oc get rc <replication controller name> -o yaml
+
+#delete all pods with a label app=app-cli
+oc delete pod -l app=app-cli
+
+#get the details about the selectors of a service
+oc describe svc app-cli | grep Selector
+
+#scaling the number of pods (here we are scaling it to 2)
+oc scale dc app-cli-1 --replicas=2
 
 #details of the deploymentconfig
 oc get dc <deployment config name> -o yaml
@@ -92,6 +113,27 @@ oc describe route/<route name>
 #get service
 oc get svc
 
+#create a readiness proble
+oc set probe dc/app-cli --readiness --get-url=http://xyz.com:8080/health --initial-delay-seconds=5
+
+#rollback a deployment to the earlier one
+oc rollback app-cli
+
+#creating a Horizontal Pod Autoscaler (HPA)
+oc autoscale dc/app-cli --min 2 --max 5 --cpu-percent=75
+
+#Setting a cpu request for HPA
+oc set resources dc/app-cli --requests=cpu=400m
+
+#get HPA event 
+oc describe hpa app-cli
+
+# to load test a horizontal Pod Autoscaler using "apache benchmark tool"
+Installing the tool : sudo apt install apache2-utils
+To load test: ab -n 50000 -c 500 http://<the url to load test>
+
+-n : the total number of requests to be fired
+-c : number of concurrent requests to be fired at a time
 
 # to retag an image with a different tag name (retag from cotd2:latest to cotd2:testready )
 oc tag cotd2:latest cotd2:testready -n pipeline-roy-dev
@@ -157,7 +199,264 @@ oc new-app -e POSTGRESQL_USER=luke -ePOSTGRESQL_PASSWORD=secret \
              --name=my-database
 
 -----------------------------------------------------------------------------------------------------------------------------------------
-Configmaps and Secrets:
+Secrets, ConfigMaps and Environment Variables:
+
+## Secrets::
+1) How are secrets created ?
+
+i) from Command Line by passing them as Literals
+Command: >oc create secret generic test-secret --from-literal=username=<user_name> --from-literal=password="<password>"
+(advisable to use password value in quotes as there could be special characters)
+
+This command can be used to create username and password for basic authentication, using the type will validate for the right key names
+Command: >oc create secret generic <secret_name> --from-literal=password=<token> --from-literal=username=<user_name> --type=kubernetes.io/basic-auth
+
+ii) From a file(any format) and then create the secret by passing the file which has the secrets.
+Command: >oc create secret generic test-secret --from-file=testfile.txt --type=Opaque
+
+iii) From a kubernetes / openshift configuration file.
+ a) below in data section the values are base64 encoded
+ b) below in stringData section the values are plain text strings, not encoded.
+ c) Type is Opaque, that means any key and value can be added, no validation on the key name and value is done
+Command: >oc create -f test-secret.yml
+Example:: (filename: test-secret.yml)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: my-namespace
+type: Opaque 
+data: 
+  username: dmFsdWUtMQ0K 
+  password: dmFsdWUtMg0KDQo=
+stringData: 
+  hostname: myapp.mydomain.com 
+
+Example2:: (this will create all the secret under onekey config.yaml(this is like a definition file having all the secrets)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+stringData:
+  config.yaml: |-
+    apiUrl: "https://my.api.com/api/v1"
+    username: {{username}}
+    password: {{password}}
+
+
+2) How are secrets assigned to Pods to access ?
+
+i) by passing them as environment variables to deploymentsconfigurations
+-- can be assigned from command line
+CommandLine: > oc set env dc/printenv --from=secret/printenv-secret
+adding the secret to deploymentconfig as environment variable
+
+>oc set env dc/printenv --from=secret/printenv-secret --prefix=MYSQL_
+Adding the secret to deploymentconfig as environment variable after adding a prefix MYSQL_
+
+-- can be assigned by adding the secret to the deployment configuration file used to spin up the pods.
+spec:
+    containers:
+    - env:
+      - name: MYAPP_SECRET_TOKEN
+        valueFrom:
+          secretKeyRef:
+	    name: test-secret
+            key: username     
+    image: "fedora:29"
+    name: my_app
+
+ii) by putting the secret in a file, and mounting the file in a volume which is associated with the pod
+
+-- can be assinged from command line
+oc set volume dc/some-app --add --name=secret-volume --mount-path=/opt/app-root/db/ --secret-name=db-secret    
+ 
+-- can be assigned by adding the file to the deployment configuration file used to spin up the pods.
+volumeMounts:
+        # name must match the volume name below
+        - name: secret-volume
+          mountPath: /etc/secret-volume
+  # The secret data is exposed to Containers in the Pod through a Volume.
+  volumes:
+    - name: secret-volume
+      secret:
+        secretName: test-secret
+
+volumeMounts:
+          - name: github-user 
+            mountPath: "/deployments/github" 
+            readOnly: true
+      volumes:
+      - name: github-user
+        secret:
+          secretName: spring-github-demo 
+          items:
+          - key: github.user 
+            path: user 
+          - key: github.token 
+            path: token 
+
+3) How are secrets assiged to builds (for example to pull codes from private repo, the access key to the repo are stored as secrets and passed during builds)
+i) by passing them as environment variables to buildconfigs
+
+-- can be assigned from command line
+Command 1: To pass the build secret from command line when creating a new buildconfig
+oc new-build \
+    openshift/wildfly-101-centos7~https://github.com/wildfly/quickstart.git \
+    --context-dir helloworld --build-secret “secret-mvn” \
+    --build-config-map "settings-mvn"
+
+Command2: oc set build-secret --source bc/sample-build basicsecret
+This is to set a source clone secret to access repositories in case of private repos
+
+-- can be assigned by adding the secret as evnironment variable to the buildconfig file used to spin up the pods.
+Example:
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: secret-example-bc
+spec:
+  strategy:
+    sourceStrategy:
+      env:
+      - name: MYVAL
+        valueFrom:
+          secretKeyRef:
+            key: hostname
+            name: test-secret
+
+
+Example: To add source secret from buildconfig file
+apiVersion: "v1"
+kind: "BuildConfig"
+metadata:
+  name: "sample-build"
+spec:
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "sample-image:latest"
+  source:
+    git:
+      uri: "https://github.com/user/app.git"
+    sourceSecret:
+      name: "basicsecret"
+
+
+
+## ConfigMaps:
+1) How are configmaps created ?
+
+i) from Command Line by passing them as Literals
+Command: >oc create configmap db-info --from-literal=dbname=pizzadb
+
+
+ii) Store the configmap in a file(any format) and then create the configmap by passing the file as parameter.
+Command: >oc create configmap ui-config --from-file=style.properties
+
+iii) By creating a kubernetes / openshift configuration file.
+
+Command: >oc create -f test-configmap.yml
+Example:: (filename: test-configmap.yml)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-info
+  namespace: default
+data:
+  dbname: pizzadb
+
+Example2:: (this will create all the secret under onekey config.yaml(this is like a definition file having all the secrets)
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  creationTimestamp: 2017-03-17T19:12:11Z
+  name: sample-config
+  namespace: default
+data:
+  example.property.1: hello
+  example.property.2: world
+  example.property.file: |-
+    property.1=value-1
+    property.2=value-2
+    property.3=value-3
+
+
+2) How are configmaps assigned to Pods to access ?
+
+i) by passing them as environment variables to deploymentsconfigurations
+-- can be assigned from command line
+
+Command2: oc env dc/myapp --from=configmap/sample-config
+The above command will add the configmap to deployment configuration's environment variable
+
+
+-- can be assigned by adding the configmap to the deployment configuration file used to spin up the pods.
+ env:
+   - name: SPECIAL_LEVEL_KEY
+     valueFrom:
+       configMapKeyRef:
+        name: special-config
+        key:  special.how
+
+ii) by putting the secret in a file, and mounting the file in a volume which is associated with the pod
+-- can be assinged from command line
+>oc set volumes dc/todo-app --add --name=configmap-volume --mount-path=/opt/app-root --configmap-name=ui-config
+   
+ 
+-- can be assigned by adding the file to the deployment configuration file used to spin up the pods.
+                  volumeMounts:
+		  - name: application-config-vol
+                    mountPath: /deployments/config
+        volumes:
+        - name: application-config-vol
+          configMap:
+	    name: fooditemsorderdeliveryapi-props-configmap
+            items:
+            - key: application.properties
+              path: application.properties
+
+
+## Environment variables
+
+1) Command:> oc set env dc/printenv APP_VAR_1=Value1 APP_VAR_2=Value2
+This will set the keys APP_VAR_1 and APP_VAR_2 as environment variables to the deploymentconfiguration.
+
+2) oc set env dc/printenv READ_FROM_FILE=/data/configfile.txt
+Set an environment variable to read from the file
+
+3) oc new-app -ePOSTGRESQL_USER=luke -ePOSTGRESQL_PASSWORD=secret \
+             -ePOSTGRESQL_DATABASE=my_data openshift/postgresql-92-centos7 \
+             --name=my-database
+This will create an app and add the environment variables (-e)
+
+4)oc set env dc/printenv READ_FROM_FILE=/data/configfile.txt
+Set an environment variable to read from the file:
+
+
+** NOTE : if a configmap or secrets contains more than one value, on adding the configmap as an environment variable to a deployment config,
+will add all the keys and values, each as a single entitiy.
+There is also a naming convention that OC follows, all key named as "hello.world" will be automatically added as "HELLO_WORLD" environment
+variable NAME.
+-----------------------------------------------------------------------------------------------------------------------------------------
+# edit secrets
+oc edit secrets <secret-name>
+
+# cli to set build secret for pulling code from private repo
+oc set build-secret --source bc/<build config name> <secret name>
+
+# getting a secret as yaml output format
+oc get secret mysecret -o yaml
+
+# checking list of secrets assigned as env variable to deploymentconfig
+oc set env dc/printenv --list
+
+#getting a config map as  yaml output format
+oc get configmaps special-config -o yaml
+
+#Editing a configmap
+oc edit dc/pizza-order-delivery-api
 
 #Creating configmap from file
 oc create configmap app-config --from-file=OpenshiftConfigSamples/app-configmap.yaml -n <projectname>
@@ -184,6 +483,12 @@ oc set env dc/printenv READ_FROM_FILE=/data/configfile.txt
 echo 'r3dh4t1!' > ./password.txt   
 echo 'admin' > ./user.txt
 oc create secret generic printenv-secret --from-file=app_user=user.txt --from-file=app_password=password.txt
+
+#create a secret from literal
+oc create secret generic github-secret --from-literal=username=shuroych --from-literal=password='<password or token>'
+
+# create a basic authentication secret
+oc create secret new-basicauth github-secret --username=shuroych --password='<token>'
 
 #validate the secret
 oc get secret printenv-secret -o yaml
@@ -301,6 +606,23 @@ oc get all --selector app=pizza-order-delivery-ui
 
 # delete all resources for an app
 oc delete all --selector app=pizza-order-delivery-ui
+
+# Autoscale pods using HPA(horizontal Pod Autoscaler)
+oc autoscale dc/example --min=5 --max=7 --cpu-percent=75
+
+#Autoscale pods on the node only if it can guarantee say 400millicores
+oc set resources dc/example --requests=cpu=400m
+
+#Autoscale get details
+oc describe hpa example
+
+# To view resource capacity on a node for HPA
+oc describe node <node name>
+
+#to test a autoscaled cluster using "Apache Benchmark Tool"
+ab -n 50000 -c 500 <url of the request>
+-n : total number of requests to be fired
+-c : number of requests fired concurrently
 ------------------------------------------------------------------------------------------------------------------------------------
 View Logs, check info and troubleshooting
 
