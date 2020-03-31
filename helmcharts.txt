@@ -1,0 +1,76 @@
+## helm chart folder is the directory where you have the charts.yml,values.yml,requirements.yml files residing.
+
+# to understand helm templating syntax
+https://golang.org/pkg/text/template/
+
+# get help with helm command
+helm get -h
+
+# After helm installation add a chart repository
+helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+
+# to list the charts available from the repo
+helm search repo stable
+
+# search a particular chart from repo added to local
+helm search repo mysql
+
+# search a particular chart from other repos
+helm search hub mysql
+
+# install a helm chart from repo
+helm install <release name> <chart from the repo>
+helm install release-v1 stable/mariadb
+
+# to see the features of a chart from the repo
+helm show chart stable/mysql
+
+# to get all information of a chart 
+helm show all stable/mysql
+
+# to see a list of all deployed releases
+helm list
+
+# Create your own helm chart with basic folder and file structure
+helm create <chart-name>
+
+# Run tests to see the chart is well formed
+helm lint ./<helm chart folder>
+
+
+#To render the template locally and see the complete output before running it on the kubernetes cluster
+helm template ./<helm chart folder>
+
+# Install the chart on a cluster
+helm install <release name> ./<helm chart folder>
+
+# to see what charts are installed as what release
+helm ls --all
+
+# If we modify the chart and install the updated version
+helm upgrade <installation name> ./<helm chart folder>
+
+# keep track of a release's state
+helm status
+
+# to see what options are configurable on a chart
+helm show values <chart name>
+
+#To rollback to the previous version
+helm rollback <installation name> <previous version number>
+Example: helm rollback hello-world 1
+
+#uninstall or delete a release
+helm uninstall <release name>
+
+# to package the chart for distribution
+helm package ./<helm chart folder>
+
+# to override files or values and install
+(update the config.yaml with changed values and install the chart by passing in the updated config.yaml file)
+helm install -f config.yaml stable/mariadb
+
+(send an updated value for an existing key in the chart)
+helm install --set name=value stable/mariadb
+(for multi-level keys)
+helm install --set outer.innervalue=value stable/mariadb

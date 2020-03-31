@@ -12,19 +12,22 @@ than one container, then getting access to the bash of one of the container
 
 ## POD Commands:
 
-kubectl get pods - get all running pods
+kubectl get pods -> get all running pods
 
-kubectl desc pods - gives all the details about the running pods , like image running, which worker node it is running, container id , etc.
+kubectl get pods -w  -> will wait and wathc the pods, you can see the status of pods changing
 
-kubectl get pods -o wide - gives the information of the pods running in which node and the ip address of the node.
+kubectl desc pods -> gives all the details about the running pods , like image running, which worker node it is running, container id , etc.
 
-kubectl create -f <pod-definition file name> - runs a pod definition file to create pods and containers inside it.
+kubectl get pods -o wide -> gives the information of the pods running in which node and the ip address of the node.
 
-kubectl delete pod <pod name> - will delete the pod with that name
+kubectl create -f <pod-definition file name> -> runs a pod definition file to create pods and containers inside it.
 
-kubectl delete -f <pod-definition file name> - will delete all pods created from that file.
+kubectl delete pod <pod name> -> will delete the pod with that name
+
+kubectl delete -f <pod-definition file name> -> will delete all pods created from that file.
 
 kubectl logs -f <pod name> : shows the logs of the container with live refresh (because of -f option)
+kubectl exec <pod name> cat <log location> : show the logs of the container by running the command inside the running container
 
 ## replica set commands:
 
