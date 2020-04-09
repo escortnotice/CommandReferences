@@ -1,3 +1,8 @@
+Install helm on Ubuntu:
+
+> sudo snap install helm --classic
+
+--------------------------------
 ## helm chart folder is the directory where you have the charts.yml,values.yml,requirements.yml files residing.
 
 # to understand helm templating syntax

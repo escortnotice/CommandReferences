@@ -16,6 +16,9 @@ curl -H "Authorization: Bearer 8tKuwU8didUK9xwc_xS2XYGX4TziwVkb-8NDIXAPCkU"
 # to logout
 > oc logout
 
+# get list of scc (security context constraint)
+oc get scc
+
 -------------------------------------------------------------------------------------------------------------------------------------
 Basic Operations like create project, delete them etc :
 
@@ -65,6 +68,9 @@ oc get rc <replication controller name> -o yaml
 
 #delete all pods with a label app=app-cli
 oc delete pod -l app=app-cli
+
+# force delete pods
+oc delete pod/<pod name> --grace-period=0 --force
 
 #get the details about the selectors of a service
 oc describe svc app-cli | grep Selector
@@ -151,6 +157,37 @@ rm -f app.ini
 
 #Set the MAVEN_MIRROR_URL environment variable for the openshift-tasks build configuration:
 oc set env bc openshift-tasks MAVEN_MIRROR_URL=http://nexus3.opentlc-shared.svc.cluster.local:8081/repository/maven-all-public
+
+
+# Registry
+Info: Each openshift cluster has a built in registry which holds multiple repositories for storing the container
+images. Generally there is one repository for each OCP project(aka namespace).
+
+The naming convention of the image is:
+<registry identifier>/<repository identifier>/<image name>:<image tag>
+
+##External route url: default-route-openshift-image-registry.<cluster_name>
+url: default-route-openshift-image-registry.apps.ocp42-poc.ocppocexample.com
+Login to Registry Command:
+podman login -u kubeadmin -p $(oc whoami -t) --tls-verify=false default-route-openshift-image-registry.apps.ocp42-poc.ocppocexample.com:443
+
+##Internal url: image-registry.openshift-image-registry.svc:5000
+Login to Registry command:
+$ oc login -u kubeadmin -p <password_from_install_log>
+$ podman login -u kubeadmin -p $(oc whoami -t) image-registry.openshift-image-registry.svc:5000
+
+##Complete Image url:
+<external / internal registry url>/project/image:tag
+
+##After logging in to registry you can perform below actions.
+
+docker push <external / internal registry url>/project/image:tag
+
+docker tag <some image> image-registry.openshift-image-registry.svc:5000/openshift/image:Latest
+
+docker image-registry.openshift-image-registry.svc:5000/openshift/image:latest
+
+
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 User Administration, roles, policy and permission grants :

@@ -1,0 +1,18 @@
+# Unzip a file
+unzip <filename.zip>
+
+#untar a file
+tar -C /myfolder -xvf yourfile.tar.gz
+
+# To check  a user is part of which group
+groups <username>
+
+
+#to create a group
+sudo groupadd <groupname>
+
+# to add a user to a group
+sudo usermod -aG <group> <user>
+
+# to get network name of a computer
+ping -a <ip address>

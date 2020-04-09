@@ -1,0 +1,144 @@
+pipeline {
+
+agent any
+
+  tools {
+    jdk 'oraclejdk8'
+  }
+
+    environment {
+        //user provided parameters
+        BRANCH="${params.BRANCH}"
+        IMAGE_TAG="${params.IMAGE_TAG}"
+        DEPLOY_ENV="${params.DEPLOY_ENV}"
+        OCP_CRED="${params.OCP_CRED}"
+        //project specific parameters
+        DOCKER_PROJECT='eipleasebusinessservicecontroller'
+    }
+
+    stages {
+
+    stage('Set Build Name') {
+      steps { 
+        echo "Set Build Name"        
+        withFolderProperties{
+          echo("OCP: ${OCP}")
+          script { 
+            currentBuild.displayName = "${BUILD_NUMBER} - Build PROJECT_DOCKER - ${OCP}"
+            currentBuild.description = "${BRANCH} - ${GIT_COMMIT}"    
+          }    
+        }
+      }
+    } 
+
+    stage('Login to OCP on AWS') {
+      steps {
+        echo "Login to OCP on AWS" 
+        withFolderProperties{
+          echo("OCP REGISTRY EXTERNAL URL: ${OCP_REGISTRY_EXT_URL}")
+          withEnv(["CREDENTIALID=${OCP_CRED}",]) {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${CREDENTIALID}", usernameVariable: 'varOCP_USERNAME', passwordVariable: 'varOCP_PASSWORD']]) {
+              sh '''#!/bin/bash 
+              alias docker=/usr/bin/docker 
+              oc login -u "$varOCP_USERNAME" -p "$varOCP_PASSWORD" $OCP_API_SERVER
+              oc project $OCP_NAMESPACE
+              docker login -u "$varOCP_USERNAME" -p $(oc whoami -t) $OCP_REGISTRY_EXT_URL
+	          '''
+	        }
+          }
+        } 
+      }
+    }
+
+    stage('Build Image') {
+        steps {      
+            echo "Build and Tag Docker Image"                  
+            withFolderProperties{
+            echo("OCP_NAMESPACE: ${OCP_NAMESPACE}")
+            echo("OCP_CONSOLE:   ${OCP_CONSOLE}") 
+            echo("OCP_INT_REGISTRY_URL: ${OCP_REGISTRY_INT_URL}")
+            echo "[*] Building Project: "
+            sh 'chmod +x gradlew'
+            sh './gradlew clean build'
+            sh '''#!/bin/bash
+            alias docker=/usr/bin/docker
+            echo "DOCKER_PROJECT:  $DOCKER_PROJECT"
+            docker build -t $OCP_REGISTRY_EXT_URL/$OCP_NAMESPACE/$DOCKER_PROJECT:$IMAGE_TAG .
+            '''	  	  
+            }
+        }
+    } 
+
+
+    stage('Logon and Push Image to Artifactory') {
+      steps {
+        withFolderProperties{
+          echo("OCP_NAMESPACE: ${OCP_NAMESPACE}")
+          echo("OCP_CONSOLE:   ${OCP_CONSOLE}")
+          withEnv(["CREDENTIALID=${OCP_CRED}",]) {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${CREDENTIALID}", usernameVariable: 'varUSERNAME', passwordVariable: 'varPASSWORD']]) {
+              sh '/usr/bin/docker login -u "$varUSERNAME" -p $(oc whoami -t) $OCP_REGISTRY_EXT_URL'
+            }
+          }
+          sh '''#!/bin/bash
+          alias docker=/usr/bin/docker
+          docker tag  $OCP_REGISTRY_EXT_URL/$OCP_NAMESPACE/$DOCKER_PROJECT:$IMAGE_TAG $OCP_REGISTRY_EXT_URL/$OCP_NAMESPACE/$DOCKER_PROJECT:$IMAGE_TAG
+          docker push $OCP_REGISTRY_EXT_URL/$OCP_NAMESPACE/$DOCKER_PROJECT:$IMAGE_TAG
+          '''
+        }
+      }
+    }
+
+stage('Deploy OCP') {
+      steps {
+        echo "Deploying To OCP"
+        withFolderProperties{      
+          echo("OCP_NAMESPACE:        ${env.OCP_NAMESPACE}")
+	      echo("OCP_REGISTRY_INT_URL: ${env.OCP_REGISTRY_INT_URL}")
+          sh '''#!/bin/bash
+          alias kubectl=/usr/local/bin/kubectl  
+
+          # copy template to specific env file
+          rm -f esp-lease-service-$DEPLOY_ENV.yaml*
+          cp esp-lease-service.yaml esp-lease-service-$DEPLOY_ENV.yaml
+
+          # replace registry url in yaml file
+          echo "Updating YAML with OCP Registry: "$OCP_REGISTRY_INT_URL
+          sed -i -e "s|<registry url>|$OCP_REGISTRY_INT_URL/$OCP_NAMESPACE|g" esp-lease-service-$DEPLOY_ENV.yaml
+
+          # replace image tag in yaml file
+          echo "Updating YAML with IMAGE Tag: " $IMAGE_TAG
+          sed -i -e "s|<version>|$IMAGE_TAG|g" esp-lease-service-$DEPLOY_ENV.yaml
+
+          #replace <techcomp_namespace> tag in yaml file with technology component's namespace (aka project name in ocp)
+          sed -i -e "s|<techcomponent_namespace>|$OCP_TECHCOMPONENT_NAMESPACE|g" esp-lease-service-$DEPLOY_ENV.yaml
+
+          # read property file
+          echo "Retrieving properties for Env: " $DEPLOY_ENV
+
+          # update property file with env variables
+          PROPERTY_FILE="env/$DEPLOY_ENV.properties"
+          while read -r line; do
+            PROP_NAME="<$(echo $line | cut -d'=' -f1)>"
+            PROP_VALUE="$(echo $line | cut -d'=' -f2)"
+            sed -i -e "s|$PROP_NAME|$PROP_VALUE|g" esp-lease-service-$DEPLOY_ENV.yaml
+          done < "$PROPERTY_FILE" 
+          
+          echo "Updated YAML with properties for Env: " $DEPLOY_ENV
+
+        # clean up existing
+        kubectl delete -f esp-lease-configmap.yaml --namespace=$OCP_NAMESPACE --ignore-not-found=true
+        kubectl delete -f esp-lease-service-$DEPLOY_ENV.yaml --namespace=$OCP_NAMESPACE --ignore-not-found=true
+
+        sleep 60
+
+        # redeploy
+        kubectl create -f esp-lease-configmap.yaml --namespace=$OCP_NAMESPACE
+        kubectl create -f esp-lease-service-$DEPLOY_ENV.yaml --namespace=$OCP_NAMESPACE
+
+        '''
+        }        
+      }
+    }
+ }
+}

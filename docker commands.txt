@@ -296,6 +296,24 @@ To push the image in the local registry: docker push <ipaddress of the local reg
 lsof -i tcp:<portnumber> = command to get the port details opened on the mac
 
 
+--------------------------------------------------------------------------------------------------------------------------------------
+
+Install Docker on Ubuntu:
+
+sudo apt-get update
+sudo apt-get remove docker docker-engine docker.io
+sudo apt install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+docker --version
+(if group called docker does not exist :  sudo groupadd docker)
+sudo usermod -aG docker $USER
+sudo chmod 666 /var/run/docker.sock
+
+(check if docker can be run without sudo : docker run hello-world)
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
 
 
 
