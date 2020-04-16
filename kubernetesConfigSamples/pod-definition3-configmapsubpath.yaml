@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp3
+  labels:
+    name: myapp3
+spec:
+  containers:
+  - name: myapp3
+    image: nginx
+    volumeMounts:
+    - name: configmap-vol
+      mountPath: /usr/local/application.properties
+      subPath: app.properties
+    - name: configmap-vol
+      mountPath: /usr/local/color.properties
+      subPath: color.properties
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+  volumes:
+  - name: configmap-vol
+    configMap:
+      name: configmap
+      items:
+      - key: application.properties
+        path: app.properties
+      - key: color
+        path: color.properties

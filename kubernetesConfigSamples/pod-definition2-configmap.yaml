@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp2
+  labels:
+    name: myapp2
+spec:
+  containers:
+  - name: myapp2
+    image: nginx
+    volumeMounts:
+    - name: configmap-vol
+      mountPath: /usr/local/app.properties
+      subPath: app.properties
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+  volumes:
+  - name: configmap-vol
+    configMap:
+      name: configmap
+      items:
+      - key: application.properties
+        path: app.properties

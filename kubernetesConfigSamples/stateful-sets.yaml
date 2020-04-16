@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stateful-webapp
+spec:
+  template:
+    metadata:
+      name: stateful-webapp
+      labels:
+        name: stateful-webapp
+    spec:
+      containers:
+        - name: webapp
+          image: nginx
+          volumeMounts:
+          - name: pv-data
+            mountPath: /var/www/html
+  volumeClaimTemplates:
+  - metadata:
+      name: pv-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
+  serviceName: stateful-webapp
+  replicas: 2
+  selector:
+   matchLabels:
+      name: stateful-webapp

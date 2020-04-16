@@ -7,14 +7,18 @@ kubectl cluster-info : gives the cluster information
 kubectl exec -it <pod name> bash : gives access to the bash shell of the container running inside
 the pod.
 
-kubectl exec -it my-pod --container <container name> -- /bin/bash : if a pod is running more 
+kubectl exec -it my-pod --container <container name> --/bin/bash : if a pod is running more 
 than one container, then getting access to the bash of one of the container
+
+kubectl run --generator=run-pod/v1 --rm utils -it --image eddiehale/utils bash -> this will run an utils pod to run commands
+like nslookup etc, and give you access to container shell to run commands and test in the cluster.
+This will get deleted when "exit" command is run on the container.
 
 ## POD Commands:
 
 kubectl get pods -> get all running pods
 
-kubectl get pods -w  -> will wait and wathc the pods, you can see the status of pods changing
+kubectl get pods -w  -> will wait and watch the pods, you can see the status of pods changing
 
 kubectl desc pods -> gives all the details about the running pods , like image running, which worker node it is running, container id , etc.
 
@@ -23,11 +27,13 @@ kubectl get pods -o wide -> gives the information of the pods running in which n
 kubectl create -f <pod-definition file name> -> runs a pod definition file to create pods and containers inside it.
 
 kubectl delete pod <pod name> -> will delete the pod with that name
+kubectl delete pod/<podname>
 
 kubectl delete -f <pod-definition file name> -> will delete all pods created from that file.
 
 kubectl logs -f <pod name> : shows the logs of the container with live refresh (because of -f option)
 kubectl exec <pod name> cat <log location> : show the logs of the container by running the command inside the running container
+kubectl exec <pod name> <command> <arguments> : to run any command in a running container inside a pod
 
 ## replica set commands:
 
@@ -40,6 +46,14 @@ kubectl describe replicaset
 kubectl get replicaset
 kubectl get replicaset <replica set name> -o yaml > replicaset.yaml - this will create a replicaset.yaml file from the 
 replicaset.
+
+## Persistent Volumes:
+kubectl get pv -> gets list of persistent volumes
+kubectl get pv/<pv-name>
+
+kubectl get pvc -> gets list of persistent volume claims
+
+kubect get sc -> gets list of storage classes
 
 ## Deployment Commands:
 

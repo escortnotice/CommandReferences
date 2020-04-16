@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-webapp
+spec:
+  clusterIP: None
+  selector:
+    name: stateful-webapp
+  ports:
+  - port: 80
+    name: http

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configmap
+data:
+  color: blue
+  environment: dev
+  application.properties: |-
+    dburl=mysql://localhost
+    user=db_usr

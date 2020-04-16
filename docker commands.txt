@@ -21,7 +21,8 @@ To run a command on a running container -> docker exec <container_name> less etc
 to let the docker container listen to standard input(like keyboard) -> docker run -i mysqldb
 
 --------------------------------------------------------------------------------------------------------------
-
+docker run -it --rm busybox -> this will start the container from the busybox image and give access to the shell.
+--rm option tells docker to remove the container once it exits
 run -d -> will run the command in background
 run -p -> needs to given when we want to expose the port of the container to the host
 run -it -> "it" is interactive mode. This will run the container and give access to its shell.
