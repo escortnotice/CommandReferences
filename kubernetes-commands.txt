@@ -4,15 +4,25 @@ kubectl get all : gives a list of all kubernetes objects running like deployment
 
 kubectl cluster-info : gives the cluster information
 
+kubectl exec <podname> -- <command to run in pods>
+ex: kubectl exec <podname> -- curl -s http://100.10.9.87
+(Everything after the double dash (--) is the command that should be executed inside the pod.)
+
 kubectl exec -it <pod name> bash : gives access to the bash shell of the container running inside
 the pod.
 
 kubectl exec -it my-pod --container <container name> --/bin/bash : if a pod is running more 
 than one container, then getting access to the bash of one of the container
 
+kubectl exec <podname> env -> this will get the environment variables of the pod
+
 kubectl run --generator=run-pod/v1 --rm utils -it --image eddiehale/utils bash -> this will run an utils pod to run commands
 like nslookup etc, and give you access to container shell to run commands and test in the cluster.
 This will get deleted when "exit" command is run on the container.
+
+# to get a list of resources that are namespaced and that are not namespaced.
+kubectl api-resources --namespaced=true
+kubectl api-resources --namespaced=false
 
 ## POD Commands:
 
@@ -86,6 +96,28 @@ only update the current deployment on the fly, and not the deployment file.
 kubectl run <deployment name> --image=<image name> - this is another way to create a deployment directly without a deployment defintion file.
 ex: kubectl run nginx-deployment --image=nginx
 
+
+## RBAC
+kubectl get roles -> to get roles present in the namespace
+
+kubectl get rolebindings -> to get rolebindings
+
+kubectl describe role <role name> -> to get details about the role.
+
+kubectl describe rolebinding <role name> -> to get details about the role binding
+
+kubectl auth can-i create deployments -> checks if the logged in user can create deployments or not.
+
+kubectl auth can-i delete nodes -> checks if the logged in user can delete nodes or not.
+
+#As administrator user logged in, one can check if a particular user has access to perform an action.
+kubectl auth can-i create deployments --as dev-user -> checks if dev user can create deployments or not
+
+kubectl create serviceaccount <service account name> -> creates a service account
+
+kubectl get serviceaccount -> this will list all the service accounts
+
+kubectl describe serviceaccount <service account name> -> this will give details about a service account
 
 
 

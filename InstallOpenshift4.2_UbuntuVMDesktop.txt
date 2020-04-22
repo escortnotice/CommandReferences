@@ -1,7 +1,0 @@
-1. Run the below command in Windows Power shell to enable virtualization for the below VM.
- > Set-VMProcessor -VMName UbuntuVM2 -ExposeVirtualizationExtensions $true
-
-UbuntuVM2 is the name of the VM.
-
-2. Run the below command in the Ubuntu VM
-> sudo apt install qemu-kvm libvirt-daemon libvirt-daemon-system network-manager
