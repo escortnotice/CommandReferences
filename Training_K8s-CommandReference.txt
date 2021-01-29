@@ -1,0 +1,76 @@
+---------------------------- Kubernetes --------------------------------------------------------------------------
+# Command to Connect to the ibm cloud kubernetes cluster from local system:
+1. ibmcloud cs cluster-config <cluster_name_or_ID>
+   ex: > ibmcloud cs cluster-config ibm-k8s
+
+2. Then run the below command to set path (this will show up in cmd prompt after running the 1st command)
+   > SET KUBECONFIG=C:\Users\ShubhamRoyChoudhury\.bluemix\plugins\container-service\clusters\ibm-k8s\kube-config-hou02-ibm-k8s.yml
+
+# Command to Get public ip of the cluster :
+ibmcloud cs workers <name-of-cluster>
+ex: > ibmcloud cs workers ibm-k8s
+
+# Create a deployment from command prompt
+> kubectl run hello-world --image=us.icr.io/<namespace>/hello-world
+
+# Create a nodeport service from command prompt
+> kubectl expose deployment/hello-world --type="NodePort" --port=8080
+
+# edit an existing running deployment
+> kubectl edit deployment/<name-of-deployment>
+Then update the file and save it. It should trigger a new depoyment with changes.
+
+# Watch the changes rolling out once the deployment file is updated from the earlier command above:
+> kubectl rollout status deployment/<name-of-deployment>
+
+# To specify a new image for an already running deployment
+> kubectl set image deployment/hello-world hello-world=us.icr.io/<namespace>/hello-world:2
+
+# to undo the last deployment :
+> kubectl rollout undo deployment/<name-of-deployment>
+
+----------------------------------Docker and IBM container registry-------------------------------------------------------------------------
+# login to the ibm cloud container registry
+> ibmcloud cr login
+
+# Build a docker image :
+Run the below command from the directory where "dockerfile" is present :
+> docker build -t us.icr.io/escortnotice/hello-world .
+
+# Push the image to the repo
+> docker push us.icr.io/escortnotice/hello-world
+
+# Delete image from the ibm cloud container registry
+> ibmcloud cr image-rm us.icr.io/escortnotice/hello-world
+
+------------------------------------------IBM Cloud Foundry--------------------------------------------------------
+# login to ibm cloud 
+> ibmcloud login --sso 
+After this a webpage will open which will have the otp, copy and paste to the command prompt as asked
+and hit enter.
+
+#select the space and organisation for deploying ibm cloud foundry apps
+> target --cf
+
+# to create a cloud foundry service (ex: tone_analyzer service )
+> ibmcloud cf create-service tone_analyzer standard tone
+
+here "tone" is the name of the service
+
+# to check the service is created
+> ibmcloud cf services
+
+# bind the service to the kubernetes cluster
+> ibmcloud cs cluster-service-bind <name-of-cluster> default tone
+
+ To verify the secret:
+> kubectl get secrets
+
+Mention the secret in the deployment definition file where pods are defined so that it can connect 
+to the service.
+
+------------------------------------------ Istio ---------------------------------------------------------------
+
+# deploying a istio side car proxy (envoy proxy) with each pod deployed
+> istioctl kube-inject -f guestbook-deployment.yaml | kubectl apply -f -
+

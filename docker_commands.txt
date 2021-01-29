@@ -1,4 +1,3 @@
-
 Docker:
 TO Play with Docker : Type play-with-docker.com. and play with test instances
 
@@ -44,7 +43,7 @@ docker pull <image name> -> will pull the docker image from docker hub
 
 docker build -f Dockerfile -t basic-springboot-project . -> builds the project image with the DockerFile configuration, . is in the current directory, -t lets you give a name to the build image.
 
-docker run --name springboot-cassandra-project -d cassandra:latest -p 9042:9042 -> run the image, "springboot-cassandra-project " is the container name, "latest" is the version of 
+docker run -p 9042:9042 --name springboot-cassandra-project -d cassandra:latest -> run the image, "springboot-cassandra-project " is the container name, "latest" is the version of 
 cassandra container you want to run, -p will provide port forwarding
 
 docker exec -it some-cassandra bash -> this gives access to the bash shell inside the cassandra container
@@ -75,6 +74,7 @@ docker run -p 8085:8085 --name springboot-docker-cassandra-container --link spri
  docker rmi $(docker images -f "dangling=true" -q) -> to remove dangling images
 
  docker logs <container name/container id> -> check logs for the container
+docker logs -f <container name/container id> -> check logs in realtime
  docker inspect <container id> -> will return the container related settings in a json array
  docker inspect <container id> | less -> will return less output and you can scroll using up and down arrow.Type quit    
                                          to exit.
@@ -396,7 +396,7 @@ RUN cd /app && go build -o goapp
 #image2 (this is the final image which will be pushed to the repo)
 FROM alpine
 WORKDIR /app
-COPY --from=build-env /app/goapp /app 		#here the build app is copied from image1 to image2
+COPY --from=build-env /app/goapp /app 		#the build app is copied from running container1(started from image1 in lastline of dockerfile) to image2
 
 EXPOSE 8080
 ENTRYPOINT ./goapp

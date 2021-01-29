@@ -2,6 +2,10 @@ kubectl get nodes : get all running nodes in the cluster (Master + worker)
 
 kubectl get all : gives a list of all kubernetes objects running like deployments,replicas,pods,services etc.
 
+k get all --all-namespaces: list of resources in all namespace
+
+k get all -n <namespace> : show resources in that particular namespace
+
 kubectl cluster-info : gives the cluster information
 
 kubectl exec <podname> -- <command to run in pods>
@@ -23,6 +27,10 @@ This will get deleted when "exit" command is run on the container.
 # to get a list of resources that are namespaced and that are not namespaced.
 kubectl api-resources --namespaced=true
 kubectl api-resources --namespaced=false
+
+# namespace
+kubectl create namespace test --> creates a test namespace
+kubectl get namespace-> lists all the namespaces in the cluster
 
 ## POD Commands:
 
@@ -51,11 +59,17 @@ kubectl create -f <replica set definition file name>
 kubectl replace -f <replica set definition file name>
 kubectl scale --replicas=6 -f <replica set definition file name>
 kubectl scale --replicas=6 replicaset <replica set name>
+kubectl scale --replicas=<expected_replica_num> deployment <deployment_label_name>
 kubectl delete replicaset <replicaset name>
 kubectl describe replicaset
 kubectl get replicaset
 kubectl get replicaset <replica set name> -o yaml > replicaset.yaml - this will create a replicaset.yaml file from the 
 replicaset.
+
+## Services
+To connect to a service in another namespace you can connect by two ways
+1) Using the Fully Qualified DNS name (fqdn) like <service name>.<namespace>.svc.cluster.local
+2) Or by just calling <servicename>.<namespace>
 
 ## Persistent Volumes:
 kubectl get pv -> gets list of persistent volumes

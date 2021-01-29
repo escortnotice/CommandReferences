@@ -16,3 +16,49 @@ sudo usermod -aG <group> <user>
 
 # to get network name of a computer
 ping -a <ip address>
+
+
+
+## File related commands
+
+# using cat command to create a file and add contents to it
+cat > test.txt (then hit enter)
+I am learning linux  (copy paste the content you need in this file or type the contents)
+(then hit enter and ctrl + c to save the file)
+
+Again type the command "cat test.txt" to verify the content of the file is present
+
+# to read the contents of a file
+cat <filename>
+
+# create an empty file
+touch <filename.extension>
+ex: touch test.txt
+
+#login to one server from another using private key (remember to convert key to .pem from .ppk and copy it in the main server)
+ssh -i privatekey.pem azureuser@<ip address>
+Incase of error with private key permission, run "chmod 0600 <privatekeyfilename>
+
+#copy command from one server to another using ssh key
+scp -i privatekeypem.pem -r helloWorldAzure azureuser@172.19.1.4:/home/azureuser
+
+#install java
+sudo apt install default-jdk
+#uninstall java
+sudo apt remove default-jdk
+
+#install maven in linux server
+sudo apt install maven
+
+#running application in background
+nohup mvn spring-boot:run&
+
+#Ubuntu Firewall
+sudo ufw enable
+sudo ufw disable
+sudo ufw allow 8080 (allow port 8080)
+sudo ufw allow OpenSSH (allow OpenSSH)
+sudo ufw status
+
+  
+

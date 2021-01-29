@@ -7,6 +7,7 @@ Install helm on Ubuntu:
 
 # to understand helm templating syntax
 https://golang.org/pkg/text/template/
+http://masterminds.github.io/sprig/
 
 # get help with helm command
 helm get -h

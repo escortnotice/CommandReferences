@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pizzaapi
+spec:
+  template:
+    metadata:
+      name: pizzaapi
+      labels:
+        app: pizzaapi
+        name: pizzaapi
+    spec:
+      hostname: pizzaapi
+      containers:
+       - name: pizzaapi
+         image: docker.io/escortnotice/pizzaapi-dockerimg:latest
+         imagePullPolicy: Always
+         ports:
+         - containerPort: 8080
+         livenessProbe:
+              httpGet:
+                path: /actuator/health
+                port: 8080
+                scheme: HTTP
+              initialDelaySeconds: 120
+              timeoutSeconds: 10
+              failureThreshold: 10
+         readinessProbe:
+              httpGet:
+                path: /liveness
+                port: 8080
+                scheme: HTTP
+              initialDelaySeconds: 120
+              timeoutSeconds: 10
+              failureThreshold: 10      
+         resources:
+                requests:
+                  cpu: 500m
+                  memory: 500Mi
+                limits:
+                  cpu: 1
+                  memory: 1Gi
+         volumeMounts:
+          - name: application-config
+            mountPath: "/deployments/config"
+            readOnly: true
+         env:
+            - name: GREETINGS_MESSAGE
+              valueFrom:
+                 configMapKeyRef:
+                   name: health-config
+                   key: greetings.message          
+            - name: DB_USERNAME
+              valueFrom:
+                 secretKeyRef:
+                   name: my-database-secret
+                   key: user
+            - name: DB_PASSWORD
+              valueFrom:
+                 secretKeyRef:
+                   name: my-database-secret
+                   key: password
+            - name: SPRING_PROFILE_ACTIVE
+              value: "-Dspring.profiles.active=openshift"
+            - name: MY_DATABASE_SERVICE_HOST
+              value: "mysql"
+            - name: MY_DATABASE_SERVICE_PORT
+              value: "3306"
+            - name: DATABASE
+              value: "pizzadb"   
+         command: ["java"]
+         args: ["-jar","$(SPRING_PROFILE_ACTIVE)","fooditemsorderdeliveryapi-0.0.1-SNAPSHOT.jar"]           
+      volumes:
+      - name: application-config
+        configMap:
+          name: fooditemsorderdeliveryapi-props-configmap 
+          items:
+          - key: application.properties
+            path: application.properties
+  selector:
+    matchLabels:
+      app: pizzaapi
+      name: pizzaapi
+  replicas: 1 # tells deployment to run X pods matching the template
+  minReadySeconds: 4 # bootup time of your pod until next pod creation
+  revisionHistoryLimit: 5 # how many deployment changes to remember
+  strategy:
+    type: RollingUpdate # indicate which strategy we want for rolling update
+    rollingUpdate:
+      maxSurge: 10 # number of pods more than desired (replicas)
+      maxUnavailable: 10 # number of pods that can be brought down at a time
