@@ -1,0 +1,40 @@
+ansible --version
+
+# shows the custom configuration file path and contents, that ansible is using.
+ansible-config view 
+
+# shows all the configurtion with the custom configuration in orange.
+ansible-config dump
+
+# ping all servers present in the inventory files
+ansible all -m ping
+
+<all> - defines hosts or group of hosts to be managed. This is called host pattern and you can
+use lot of combinations like wildcard (*), colon (:), group of hosts [], exclusion (!), etc.
+
+
+# to run bash commands
+ansible all -a "<linux command>"
+
+the commands that are run with this approach are not idempotent.
+
+# to run command as sudo
+ansible all -b -a "<linux command>"
+
+-b : this options is same as "sudo", it means becoming sudo.
+
+the commands that are run with this approach are not idempotent.
+
+# how to use modules in ansible command line
+ansible app -m yum -b -a "name=ntp state=installed"
+
+<app> - defines hosts or groups, here app denotes a group of host under "app" in inventory file
+<-m> - this denotes that we are using a module next
+<yum> - this is the module used
+<-b> - this is for sudo, i.e - become sudo
+<-a> - this says that a linux command will be used next
+<name=ntp state=installed> - this is the linux command
+
+
+
+

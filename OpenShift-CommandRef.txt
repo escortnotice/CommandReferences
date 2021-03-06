@@ -169,7 +169,7 @@ The naming convention of the image is:
 ##External route url: default-route-openshift-image-registry.<cluster_name>
 url: default-route-openshift-image-registry.apps.ocp42-poc.ocppocexample.com
 Login to Registry Command:
-podman login -u kubeadmin -p $(oc whoami -t) --tls-verify=false default-route-openshift-image-registry.apps.ocp42-poc.ocppocexample.com:443
+podman login -u (oc whoami) -p $(oc whoami -t) --tls-verify=false default-route-openshift-image-registry.apps.ocp42-poc.ocppocexample.com:443
 
 ##Internal url: image-registry.openshift-image-registry.svc:5000
 Login to Registry command:
