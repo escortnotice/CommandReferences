@@ -35,6 +35,14 @@ ansible app -m yum -b -a "name=ntp state=installed"
 <-a> - this says that a linux command will be used next
 <name=ntp state=installed> - this is the linux command
 
+# check the playbook syntax is correct.
+ansible-playbook <playbookname.yml> --syntax-check
+# now check the exit code is 0 or not. 0 means no error
+echo $?
+
+# check the list of hosts that will be effected by the playbook
+ ansible-playbook systems.yml --list-hosts
+
 
 
 
