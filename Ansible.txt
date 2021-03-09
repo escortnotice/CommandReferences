@@ -47,6 +47,11 @@ echo $?
 ansible-playbook <playbookfilename>.yml --list-tasks
 
 # dry run the playbook to see the impact
- ansible-playbook systems.yml --check
+ ansible-playbook <playbookfilename>.yml --check
+ 
+ # run playbook
+ ansible-playbook <playbookfilename>.yml
+ # run playbook with hosts name
+ ansible-playbook <playbookfilename>.yml -i inventory.txt
  
  
