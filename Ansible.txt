@@ -63,3 +63,6 @@ command id admin
 # to run ansible tasks one by one from the playbook
 ansible-playbook systems.yml --step
  
+# to run playbook to a particular host
+ansible-playbook <playbookfilename>.yml --limit <hostname>
+Ex: ansible-playbook <playbookfilename>.yml --limit app
