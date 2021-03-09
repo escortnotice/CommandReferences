@@ -41,8 +41,12 @@ ansible-playbook <playbookname.yml> --syntax-check
 echo $?
 
 # check the list of hosts that will be effected by the playbook
- ansible-playbook systems.yml --list-hosts
+ ansible-playbook <playbookfilename>.yml --list-hosts
 
+# check the list of tasks run by the playbook
+ansible-playbook <playbookfilename>.yml --list-tasks
 
-
-
+# dry run the playbook to see the impact
+ ansible-playbook systems.yml --check
+ 
+ 
