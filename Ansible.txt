@@ -54,4 +54,9 @@ ansible-playbook <playbookfilename>.yml --list-tasks
  # run playbook with hosts name
  ansible-playbook <playbookfilename>.yml -i inventory.txt
  
+ # to verify if the playbook ran successfully and ran the tasks
+ ansible-console <hosts>
+ ex: ansible-console prod
+# for example now you want to check if the user admin was created, then run the following command.
+command id admin
  
