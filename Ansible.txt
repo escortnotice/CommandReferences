@@ -59,4 +59,7 @@ ansible-playbook <playbookfilename>.yml --list-tasks
  ex: ansible-console prod
 # for example now you want to check if the user admin was created, then run the following command.
 command id admin
+
+# to run ansible tasks one by one from the playbook
+ansible-playbook systems.yml --step
  
