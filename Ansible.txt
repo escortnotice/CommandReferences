@@ -66,3 +66,9 @@ ansible-playbook systems.yml --step
 # to run playbook to a particular host
 ansible-playbook <playbookfilename>.yml --limit <hostname>
 Ex: ansible-playbook <playbookfilename>.yml --limit app
+
+# to create roles subdirectories and files, using scaffolding
+mkdir roles
+ansible-galaxy init --offline --init-path=roles <name of the role to be created>
+Ex:  ansible-galaxy init --offline --init-path=roles apache
+
